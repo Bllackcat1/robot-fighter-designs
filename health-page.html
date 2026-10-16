@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Health Page — Mech Repair Bay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0e10; --bg2:#121518; --panel:#171b1f; --panel2:#1d2227; --line:#2b3238;
+    --ink:#eef1f2; --muted:#9aa6ad; --faint:#6b777e;
+    --orange:#ff7a1a; --red:#ff4545; --amber:#ffb020; --teal:#2dd4bf; --green:#3ddc84;
+    --steel:#8b98a1; --mech:#39434b; --mech2:#4a565f; --mech-dark:#232a30;
+    --chip:#22282e;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#e8eaeb; --bg2:#dfe3e5; --panel:#ffffff; --panel2:#f3f5f6; --line:#c9d0d4;
+      --ink:#171c1f; --muted:#55606a; --faint:#7e8a91;
+      --chip:#eceff1; --mech:#5a686f; --mech2:#76868e; --mech-dark:#39444a;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Chakra Petch", system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:"Share Tech Mono", ui-monospace, monospace}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+
+  /* ---------- top status strip ---------- */
+  .topbar{
+    display:flex;flex-wrap:wrap;gap:14px;align-items:stretch;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:16px 18px;
+  }
+  .overall{flex:1 1 260px;min-width:230px}
+  .overall-label{font-size:11px;letter-spacing:.18em;color:var(--muted);font-weight:600}
+  .overall-row{display:flex;align-items:baseline;gap:12px;margin-top:2px}
+  .overall-pct{font-size:52px;line-height:1;font-weight:700;letter-spacing:-.01em}
+  .overall-pct small{font-size:22px;color:var(--muted)}
+  .status-badge{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:12px;font-weight:700;letter-spacing:.12em;
+    padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--chip);
+  }
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:pulse 1.1s infinite}
+  .status-badge.ready .dot{background:var(--green);animation:none}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .overall-bar{height:10px;border-radius:99px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;margin-top:12px}
+  .overall-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--orange),var(--amber) 55%,var(--teal));transition:width .3s linear;border-radius:99px}
+  .stat-boxes{display:flex;gap:10px;flex-wrap:wrap}
+  .stat-box{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:128px}
+  .stat-box .k{font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
+  .stat-box .v{font-size:24px;font-weight:700;margin-top:2px}
+  .stat-box .v small{font-size:12px;color:var(--muted);font-weight:500}
+
+  /* ---------- layout ---------- */
+  .grid{display:grid;grid-template-columns:minmax(300px,460px) 1fr;gap:16px;margin-top:16px}
+  @media (max-width:860px){ .grid{grid-template-columns:1fr} }
+
+  .bay{
+    background:
+      repeating-linear-gradient(0deg, transparent 0 34px, color-mix(in srgb, var(--line) 45%, transparent) 34px 35px),
+      repeating-linear-gradient(90deg, transparent 0 34px, color-mix(in srgb, var(--line) 45%, transparent) 34px 35px),
+      var(--panel);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;position:relative;
+  }
+  .bay-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .bay-head h2{font-size:13px;letter-spacing:.16em;margin:0;font-weight:700}
+  .bay-head span{font-size:11px;color:var(--muted)}
+  .bay-floor{position:relative;height:520px}
+  @media (max-width:520px){ .bay-floor{height:440px} }
+
+  /* floor + dock */
+  .floor-line{position:absolute;left:6%;right:6%;bottom:52px;height:2px;background:var(--line)}
+  .dock{position:absolute;top:10px;right:10px;display:flex;gap:6px;align-items:center;background:var(--panel2);border:1px dashed var(--line);border-radius:8px;padding:6px 8px;z-index:5}
+  .dock .k{font-size:9px;letter-spacing:.14em;color:var(--faint);font-weight:700}
+  .dock-slot{width:14px;height:14px;border-radius:50%;border:1px solid var(--line);background:var(--bg2);display:grid;place-items:center;font-size:9px}
+  .dock-slot.full{background:var(--teal);border-color:var(--teal);color:#06231e}
+
+  /* ---------- mech svg ---------- */
+  .mech-wrap{position:absolute;inset:0;display:grid;place-items:end center;padding-bottom:40px}
+  svg.mech{height:92%;max-width:88%}
+  .zone{cursor:pointer;transition:filter .25s}
+  .zone .shape{fill:var(--mech);stroke:var(--mech-dark);stroke-width:2;transition:fill .4s, stroke .4s}
+  .zone .detail{fill:var(--mech2)}
+  .zone.damaged .shape{stroke:var(--red)}
+  .zone.damaged{animation:zonePulse 1.6s infinite}
+  @keyframes zonePulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,69,69,0))}50%{filter:drop-shadow(0 0 7px rgba(255,69,69,.75))}}
+  .zone.selected .shape{stroke:var(--amber);stroke-width:3}
+  .zone.online .shape{stroke:var(--green)}
+  .zone.boosted .shape{stroke:var(--teal)}
+  .crack{stroke:#101314;stroke-width:2;fill:none;stroke-linecap:round;opacity:.9}
+  .zone.online .crack{opacity:0;transition:opacity .6s}
+
+  /* ---------- repair bots ---------- */
+  .bot{position:absolute;width:52px;height:44px;z-index:6;pointer-events:none;transition:left 1.1s cubic-bezier(.6,0,.2,1), top 1.1s cubic-bezier(.6,0,.2,1)}
+  .bot .bob{animation:bob 1.8s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .bot .arm{transform-origin:38px 26px;animation:weld .5s ease-in-out infinite alternate}
+  @keyframes weld{from{transform:rotate(-7deg)}to{transform:rotate(9deg)}}
+  .bot .eye{animation:blink 3.4s infinite}
+  @keyframes blink{0%,92%,100%{opacity:1}95%{opacity:.1}}
+  .spark{position:absolute;border-radius:50%;background:#ffd34d;box-shadow:0 0 6px 2px rgba(255,180,40,.8);opacity:0}
+  .bot.working .spark{animation:sparkFly .55s linear infinite}
+  .bot.working .s2{animation-delay:.18s}.bot.working .s3{animation-delay:.36s}
+  @keyframes sparkFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--sx,10px),var(--sy,12px)) scale(.3)}}
+  .bot.docked .arm{animation:none;transform:rotate(38deg)}
+  .bot.docked .bob{animation-duration:3.2s}
+  .bot-tag{position:absolute;left:50%;transform:translateX(-50%);top:42px;font-size:9px;letter-spacing:.08em;background:var(--panel);border:1px solid var(--line);padding:1px 5px;border-radius:99px;color:var(--muted);white-space:nowrap}
+
+  /* ---------- parts list ---------- */
+  .parts{display:flex;flex-direction:column;gap:10px}
+  .part{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px;
+    cursor:pointer;text-align:left;width:100%;color:inherit;font-family:inherit;
+    display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;
+  }
+  .part:hover{border-color:var(--steel)}
+  .part.selected{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+  .part.online{border-color:color-mix(in srgb, var(--green) 55%, var(--line))}
+  .p-icon{width:44px;height:44px;border-radius:8px;background:var(--chip);border:1px solid var(--line);display:grid;place-items:center;font-size:20px}
+  .p-name{font-weight:700;font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .p-sub{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+  .p-bar{display:block;height:7px;border-radius:99px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;margin-top:8px}
+  .p-fill{height:100%;background:var(--red);border-radius:99px;transition:width .25s linear, background .4s}
+  .p-fill.mid{background:var(--amber)} .p-fill.high{background:var(--teal)} .p-fill.full{background:var(--green)}
+  .p-right{text-align:right;min-width:86px}
+  .p-timer{font-size:21px;font-weight:400}
+  .p-timer.done{color:var(--green);font-size:14px;font-weight:700;letter-spacing:.1em;font-family:"Chakra Petch",sans-serif}
+  .p-hp{font-size:12px;color:var(--muted)}
+  .tag{font-size:9px;font-weight:700;letter-spacing:.12em;padding:3px 7px;border-radius:99px}
+  .tag.crit{background:#3a1512;color:#ff9a8a;border:1px solid #6e2a22}
+  .tag.rep{background:#2e2410;color:#ffd37a;border:1px solid #6b5518}
+  .tag.on{background:#0f2e1e;color:#7de8ae;border:1px solid #1f5c3a}
+  .tag.boost{background:#0b2e2a;color:#7de8dc;border:1px solid #14554c}
+  @media (prefers-color-scheme: light){
+    .tag.crit{background:#fde8e4;color:#a52a1d;border-color:#eec5be}
+    .tag.rep{background:#fdf3d3;color:#7a5b00;border-color:#eadfa6}
+    .tag.on{background:#dff7e8;color:#14663a;border-color:#b6e6c8}
+    .tag.boost{background:#d9f5f0;color:#0b5a4e;border-color:#a9e2d8}
+  }
+
+  /* detail panel */
+  .detail{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:16px}
+  .detail h3{margin:0 0 4px;font-size:17px}
+  .detail p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55;max-width:62ch}
+  .detail-grid{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .detail-grid .stat-box{flex:1 1 130px}
+  .btn{
+    appearance:none;border:1px solid var(--line);background:var(--chip);color:var(--ink);
+    font-family:inherit;font-weight:700;font-size:13px;letter-spacing:.06em;
+    padding:11px 16px;border-radius:8px;cursor:pointer;
+  }
+  .btn.primary{background:var(--orange);border-color:var(--orange);color:#1d0f02}
+  .btn.teal{background:var(--teal);border-color:var(--teal);color:#04231e}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn:active{transform:translateY(1px)}
+
+  /* log + finish */
+  .log{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:16px}
+  .log h3{margin:0 0 8px;font-size:11px;letter-spacing:.16em;color:var(--muted)}
+  .log ul{list-style:none;margin:0;padding:0;font-size:12.5px;display:flex;flex-direction:column;gap:5px;max-height:132px;overflow:auto}
+  .log li{color:var(--muted)} .log li b{color:var(--ink);font-weight:600}
+  .log .t{color:var(--faint);margin-right:8px}
+  .finish{display:none;margin-top:16px;background:color-mix(in srgb, var(--green) 12%, var(--panel));border:1px solid var(--green);border-radius:10px;padding:18px;text-align:center}
+  .finish.show{display:block}
+  .finish .big{font-size:26px;font-weight:700;letter-spacing:.04em}
+  .finish p{color:var(--muted);margin:6px 0 14px;font-size:14px}
+  .foot{margin-top:14px;font-size:11.5px;color:var(--faint);text-align:center}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.01s !important;transition-duration:.01s !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- STATUS STRIP -->
+  <section class="topbar" aria-label="Overall mech status">
+    <div class="overall">
+      <div class="overall-label">MECH INTEGRITY — UNIT MK-IV “BASTION”</div>
+      <div class="overall-row">
+        <div class="overall-pct"><span id="overallPct">0</span><small>%</small></div>
+        <span class="status-badge" id="statusBadge"><span class="dot"></span><span id="statusText">REPAIRS UNDERWAY</span></span>
+      </div>
+      <div class="overall-bar"><div class="overall-fill" id="overallFill"></div></div>
+    </div>
+    <div class="stat-boxes">
+      <div class="stat-box"><div class="k">FULLY REPAIRED IN</div><div class="v mono" id="etaBox">--:--</div></div>
+      <div class="stat-box"><div class="k">SYSTEMS ONLINE</div><div class="v"><span id="onlineCount">0</span><small> / 6</small></div></div>
+      <div class="stat-box"><div class="k">BOTS ON JOB</div><div class="v"><span id="botCount">6</span><small> active</small></div></div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <!-- MECH BAY -->
+    <section class="bay" aria-label="Mech repair bay">
+      <div class="bay-head"><h2>REPAIR BAY 03</h2><span>Tap a glowing section to inspect it</span></div>
+      <div class="bay-floor" id="bayFloor">
+        <div class="dock" aria-hidden="true"><span class="k">BOT DOCK</span><span id="dockSlots"></span></div>
+        <div class="floor-line"></div>
+        <div class="mech-wrap">
+          <svg class="mech" viewBox="0 0 300 420" role="img" aria-label="Front view of the mech with damaged sections highlighted">
+            <!-- legs -->
+            <g class="zone" data-part="legs">
+              <rect class="shape" x="103" y="268" width="38" height="104" rx="8"/>
+              <rect class="shape" x="159" y="268" width="38" height="104" rx="8"/>
+              <rect class="detail" x="103" y="330" width="38" height="12"/>
+              <rect class="detail" x="159" y="330" width="38" height="12"/>
+              <path class="shape" d="M96 372 h52 v16 h-52 z"/><path class="shape" d="M152 372 h52 v16 h-52 z"/>
+              <path class="crack" d="M122 285 l8 16 l-7 14"/>
+            </g>
+            <!-- left arm -->
+            <g class="zone" data-part="armL">
+              <rect class="shape" x="34" y="128" width="30" height="96" rx="12"/>
+              <rect class="shape" x="30" y="222" width="36" height="30" rx="8"/>
+              <path class="crack" d="M48 145 l6 18 l-8 15"/>
+            </g>
+            <!-- right arm -->
+            <g class="zone" data-part="armR">
+              <rect class="shape" x="236" y="128" width="30" height="96" rx="12"/>
+              <rect class="shape" x="234" y="222" width="36" height="30" rx="8"/>
+              <rect class="detail" x="242" y="238" width="22" height="34" rx="4"/>
+              <path class="crack" d="M252 140 l-7 20 l8 16 M246 205 l10 10"/>
+            </g>
+            <!-- pauldrons -->
+            <g class="zone" data-part="pauldrons">
+              <path class="shape" d="M52 92 q40 -22 74 -4 l-4 34 l-66 6 z"/>
+              <path class="shape" d="M248 92 q-40 -22 -74 -4 l4 34 l66 6 z"/>
+              <path class="crack" d="M84 92 l8 14 l-6 12"/>
+            </g>
+            <!-- back unit -->
+            <g class="zone" data-part="back">
+              <rect class="shape" x="128" y="34" width="44" height="40" rx="6"/>
+              <circle class="detail" cx="150" cy="54" r="9"/>
+              <path class="crack" d="M138 44 l10 12 l-6 10"/>
+            </g>
+            <!-- torso core -->
+            <g class="zone" data-part="core">
+              <path class="shape" d="M92 96 h116 l10 78 l-20 62 h-96 l-20 -62 z"/>
+              <rect class="detail" x="112" y="196" width="76" height="14" rx="4"/>
+              <path class="crack" d="M118 120 l14 18 l-10 16 M182 128 l-10 16"/>
+            </g>
+            <circle id="coreLight" cx="150" cy="152" r="17" fill="#ff4545" stroke="#101314" stroke-width="3"/>
+            <!-- helmet -->
+            <g class="zone" data-part="helmet">
+              <path class="shape" d="M118 22 q32 -18 64 0 l6 40 q-38 14 -76 0 z"/>
+              <rect class="detail" x="128" y="34" width="44" height="10" rx="5"/>
+              <path class="crack" d="M168 26 l-6 12 l7 9"/>
+            </g>
+          </svg>
+        </div>
+        <div id="botLayer"></div>
+      </div>
+    </section>
+
+    <!-- PARTS LIST -->
+    <section aria-label="Damaged parts and repair timers">
+      <div class="parts" id="partsList"></div>
+
+      <div class="detail" id="detailPanel">
+        <h3 id="dName">Select a part</h3>
+        <p id="dDesc">Tap any part of the mech — or a card above — to see what broke, which bot is on it, and how long the fix takes. Send a second bot with Priority Boost and that repair runs about twice as fast.</p>
+        <div class="detail-grid">
+          <div class="stat-box"><div class="k">TIME REMAINING</div><div class="v mono" id="dTimer">--:--</div></div>
+          <div class="stat-box"><div class="k">BOT ASSIGNED</div><div class="v" id="dBot" style="font-size:17px;padding-top:5px">—</div></div>
+          <div class="stat-box"><div class="k">REPAIR RATE</div><div class="v" id="dRate" style="font-size:17px;padding-top:5px">—</div></div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn teal" id="boostBtn" disabled>⚡ Priority Boost — send a 2nd bot</button>
+          <button class="btn" id="resetBtn">↺ Re-run battle damage</button>
+        </div>
+      </div>
+
+      <div class="finish" id="finishBanner">
+        <div class="big">✓ MECH AT 100% — COMBAT READY</div>
+        <p>Every system is back online and all repair bots have returned to the dock. Bastion is cleared to deploy.</p>
+        <button class="btn primary" id="againBtn">Simulate new battle damage</button>
+      </div>
+
+      <div class="log">
+        <h3>REPAIR LOG</h3>
+        <ul id="logList"></ul>
+      </div>
+    </section>
+  </div>
+
+  <p class="foot">Repairs run in real time while this page is open — each timer counts down second by second and hull integrity climbs as the bots work.</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // Durations are real seconds — long enough to watch the bots work, short enough to never feel stuck.
+  var PART_DEFS = [
+    { id:"helmet",   name:"Helmet & Visor",      icon:"🪖", bot:"WELD-1", startHp:62, duration:50,
+      dmg:"Visor cracked across the right optic and the HUD projector is flickering. Bot is re-seating the lens and re-calibrating the display.",
+      pos:{x:56,y:4} },
+    { id:"core",     name:"Torso Core Reactor",  icon:"◎", bot:"ARC-2", startHp:41, duration:115,
+      dmg:"Reactor housing took a direct hit — two coolant lines severed and power output is throttled to half. Bot has to swap both lines and re-pressurize the loop before it can run hot again.",
+      pos:{x:63,y:30} },
+    { id:"pauldrons",name:"Pauldron Armor",      icon:"⛨", bot:"PATCH-3", startHp:78, duration:34,
+      dmg:"Left pauldron plate is dented in and pinching the shoulder joint. Mostly hammer-and-plate work — a quick one.",
+      pos:{x:16,y:18} },
+    { id:"armR",     name:"Right Arm — Cannon Mount", icon:"🦾", bot:"TORQ-4", startHp:23, duration:140,
+      dmg:"Cannon mount is nearly torn off and the ammo feed is jammed solid. Bot has to re-weld the hardpoint, then re-thread the whole feed line.",
+      pos:{x:82,y:32} },
+    { id:"back",     name:"Back Unit — Tesla Coil", icon:"⚡", bot:"VOLT-5", startHp:55, duration:78,
+      dmg:"Coil housing is scorched and three conductor rings are bent out of true. Bot is re-winding the rings and re-insulating the housing.",
+      pos:{x:38,y:2} },
+    { id:"legs",     name:"Leg Servos",          icon:"🦿", bot:"PIST-6", startHp:84, duration:26,
+      dmg:"Left knee servo is grinding and running hot. A swap-and-grease job — the fastest repair on the board.",
+      pos:{x:30,y:66} }
+  ];
+
+  var parts, selectedId = "core", boostedId = null, finished = false;
+  var $ = function(id){ return document.getElementById(id); };
+  var partsList = $("partsList"), botLayer = $("botLayer"), dockSlots = $("dockSlots");
+
+  function botSVG(){
+    return '<svg viewBox="0 0 52 44" width="52" height="44" aria-hidden="true">'
+      + '<g class="bob">'
+      + '<ellipse cx="26" cy="40" rx="12" ry="2.6" fill="rgba(0,0,0,.28)"/>'
+      + '<rect x="13" y="8" width="26" height="19" rx="8" fill="#2dd4bf" stroke="#0c2b27" stroke-width="2"/>'
+      + '<circle class="eye" cx="21" cy="17" r="3" fill="#06231e"/><circle class="eye" cx="31" cy="17" r="3" fill="#06231e"/>'
+      + '<rect x="22" y="2" width="8" height="6" rx="2" fill="#ffb020"/><circle cx="26" cy="2" r="2.4" fill="#ff4545"/>'
+      + '<g class="arm"><rect x="36" y="20" width="13" height="5" rx="2.5" fill="#8b98a1" stroke="#232a30" stroke-width="1.5"/><circle cx="50" cy="22.5" r="2.6" fill="#ffd34d"/></g>'
+      + '<rect x="17" y="27" width="6" height="8" rx="3" fill="#8b98a1"/><rect x="29" y="27" width="6" height="8" rx="3" fill="#8b98a1"/>'
+      + '</g></svg>'
+      + '<span class="spark s1" style="width:5px;height:5px;right:-2px;top:20px;--sx:12px;--sy:10px"></span>'
+      + '<span class="spark s2" style="width:4px;height:4px;right:-4px;top:24px;--sx:-8px;--sy:14px"></span>'
+      + '<span class="spark s3" style="width:3px;height:3px;right:0;top:17px;--sx:8px;--sy:-9px"></span>';
+  }
+
+  function fmt(sec){
+    sec = Math.max(0, Math.ceil(sec));
+    var m = Math.floor(sec/60), s = sec % 60;
+    return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+  }
+  function clock(){
+    var d = new Date();
+    function p(n){ return (n<10?"0":"")+n; }
+    return p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds());
+  }
+  function log(html){
+    var li = document.createElement("li");
+    li.innerHTML = '<span class="t mono">'+clock()+'</span>'+html;
+    var list = $("logList");
+    list.insertBefore(li, list.firstChild);
+    while(list.children.length > 9) list.removeChild(list.lastChild);
+  }
+
+  function build(){
+    parts = {}; finished = false; boostedId = null;
+    partsList.innerHTML = ""; botLayer.innerHTML = ""; dockSlots.innerHTML = "";
+    $("finishBanner").classList.remove("show");
+    $("logList").innerHTML = "";
+
+    PART_DEFS.forEach(function(def, i){
+      var p = { def:def, hp:def.startHp, progress:0, done:false, card:null, botEl:null, zone:null };
+      parts[def.id] = p;
+
+      // card
+      var btn = document.createElement("button");
+      btn.className = "part"; btn.type = "button"; btn.setAttribute("data-id", def.id);
+      btn.innerHTML =
+        '<span class="p-icon">'+def.icon+'</span>'
+        + '<span><span class="p-name">'+def.name+' <span class="tag rep" data-role="tag">REPAIRING</span></span>'
+        + '<span class="p-sub">'+def.bot+' on the job · started at '+def.startHp+'%</span>'
+        + '<span class="p-bar"><span class="p-fill" data-role="fill" style="display:block;height:100%"></span></span></span>'
+        + '<span class="p-right"><span class="p-timer mono" data-role="timer">--:--</span><br>'
+        + '<span class="p-hp"><span data-role="hp">'+def.startHp+'</span>% integrity</span></span>';
+      btn.addEventListener("click", function(){ select(def.id); });
+      partsList.appendChild(btn);
+      p.card = btn;
+
+      // bot
+      var bot = document.createElement("div");
+      bot.className = "bot working";
+      bot.style.left = def.pos.x + "%"; bot.style.top = def.pos.y + "%";
+      bot.innerHTML = botSVG() + '<span class="bot-tag mono">'+def.bot+'</span>';
+      botLayer.appendChild(bot);
+      p.botEl = bot;
+
+      // dock slot
+      var slot = document.createElement("span");
+      slot.className = "dock-slot mono"; slot.id = "dock-"+def.id; slot.textContent = i+1;
+      dockSlots.appendChild(slot);
+
+      // mech zone
+      p.zone = document.querySelector('.zone[data-part="'+def.id+'"]');
+      if(p.zone){
+        p.zone.classList.add("damaged"); p.zone.classList.remove("online","boosted","selected");
+        p.zone.addEventListener("click", function(){ select(def.id); });
+      }
+      log("<b>"+def.bot+"</b> started on <b>"+def.name+"</b> — "+(100-def.startHp)+"% to restore.");
+    });
+    select(selectedId);
+  }
+
+  function remaining(p){
+    if(p.done) return 0;
+    var rate = (boostedId === p.def.id) ? 1.9 : 1;
+    return (1 - p.progress) * p.def.duration / rate;
+  }
+
+  function select(id){
+    selectedId = id;
+    Object.keys(parts).forEach(function(k){
+      var p = parts[k];
+      p.card.classList.toggle("selected", k === id);
+      if(p.zone) p.zone.classList.toggle("selected", k === id);
+    });
+    renderDetail();
+  }
+
+  function renderDetail(){
+    var p = parts[selectedId]; if(!p) return;
+    $("dName").textContent = p.def.name;
+    $("dDesc").textContent = p.done
+      ? "Fully repaired and pressure-tested. This system is back at 100% and cleared for combat."
+      : p.def.dmg;
+    $("dTimer").textContent = p.done ? "DONE" : fmt(remaining(p));
+    $("dBot").textContent = p.done ? p.def.bot + " · docked" : (boostedId === p.def.id ? p.def.bot + " + spare bot" : p.def.bot);
+    $("dRate").textContent = p.done ? "—" : (boostedId === p.def.id ? "1.9× (boosted)" : "1.0× standard");
+    var bb = $("boostBtn");
+    bb.disabled = p.done || boostedId === p.def.id;
+    bb.textContent = boostedId === p.def.id ? "⚡ Boost active on this part"
+      : (boostedId ? "⚡ Move boost to this part" : "⚡ Priority Boost — send a 2nd bot");
+  }
+
+  $("boostBtn").addEventListener("click", function(){
+    var p = parts[selectedId]; if(!p || p.done) return;
+    var prev = boostedId;
+    boostedId = p.def.id;
+    Object.keys(parts).forEach(function(k){
+      if(parts[k].zone) parts[k].zone.classList.toggle("boosted", k === boostedId);
+    });
+    log("Priority boost moved to <b>"+p.def.name+"</b> — second bot assigned, repair at 1.9×.");
+    if(prev && parts[prev]) { /* previous part returns to standard rate */ }
+    renderDetail();
+  });
+
+  function completePart(p){
+    p.done = true; p.hp = 100; p.progress = 1;
+    p.card.classList.add("online");
+    var tag = p.card.querySelector('[data-role="tag"]');
+    tag.textContent = "ONLINE"; tag.className = "tag on";
+    var timer = p.card.querySelector('[data-role="timer"]');
+    timer.textContent = "ONLINE"; timer.classList.add("done");
+    p.card.querySelector('[data-role="hp"]').textContent = "100";
+    var fill = p.card.querySelector('[data-role="fill"]');
+    fill.style.width = "100%"; fill.className = "p-fill full";
+    if(p.zone){ p.zone.classList.remove("damaged","boosted"); p.zone.classList.add("online"); }
+    if(boostedId === p.def.id) boostedId = null;
+    // bot flies home to the dock
+    p.botEl.classList.remove("working"); p.botEl.classList.add("docked");
+    p.botEl.style.left = "calc(100% - 118px)"; p.botEl.style.top = "6px";
+    p.botEl.style.transform = "scale(.55)"; p.botEl.style.opacity = ".85";
+    var slot = $("dock-"+p.def.id); if(slot) slot.classList.add("full");
+    log("<b>"+p.def.name+"</b> repaired — <b>"+p.def.bot+"</b> back at the dock. ✓");
+    if(selectedId === p.def.id) renderDetail();
+  }
+
+  var last = null;
+  function tick(now){
+    if(!last) last = now;
+    var dt = Math.min(0.5, (now - last) / 1000); last = now;
+
+    var totalHp = 0, online = 0, maxRemain = 0, activeBots = 0;
+    Object.keys(parts).forEach(function(k){
+      var p = parts[k];
+      if(!p.done){
+        activeBots++;
+        var rate = (boostedId === k) ? 1.9 : 1;
+        p.progress += (dt / p.def.duration) * rate;
+        p.hp = p.def.startHp + (100 - p.def.startHp) * Math.min(1, p.progress);
+        if(p.progress >= 1){ completePart(p); }
+        else {
+          var fill = p.card.querySelector('[data-role="fill"]');
+          fill.style.width = p.hp + "%";
+          fill.className = "p-fill " + (p.hp >= 100 ? "full" : p.hp >= 75 ? "high" : p.hp >= 50 ? "mid" : "");
+          p.card.querySelector('[data-role="hp"]').textContent = Math.floor(p.hp);
+          p.card.querySelector('[data-role="timer"]').textContent = fmt(remaining(p));
+          var tag = p.card.querySelector('[data-role="tag"]');
+          if(boostedId === k){ tag.textContent = "BOOSTED"; tag.className = "tag boost"; }
+          else if(p.hp < 45){ tag.textContent = "CRITICAL"; tag.className = "tag crit"; }
+          else { tag.textContent = "REPAIRING"; tag.className = "tag rep"; }
+          maxRemain = Math.max(maxRemain, remaining(p));
+        }
+      }
+      totalHp += p.hp;
+      if(p.done) online++;
+    });
+
+    var avg = totalHp / PART_DEFS.length;
+    $("overallPct").textContent = Math.floor(avg);
+    $("overallFill").style.width = avg + "%";
+    $("etaBox").textContent = online === PART_DEFS.length ? "00:00" : fmt(maxRemain);
+    $("onlineCount").textContent = online;
+    $("botCount").textContent = activeBots;
+
+    var core = parts.core;
+    $("coreLight").setAttribute("fill", core.done ? "#3ddc84" : (core.hp > 70 ? "#ffb020" : "#ff4545"));
+
+    if(selectedId && parts[selectedId] && !parts[selectedId].done){
+      $("dTimer").textContent = fmt(remaining(parts[selectedId]));
+    }
+
+    if(online === PART_DEFS.length && !finished){
+      finished = true;
+      $("statusText").textContent = "COMBAT READY";
+      $("statusBadge").classList.add("ready");
+      $("finishBanner").classList.add("show");
+      log("<b>All systems online.</b> Bastion is at 100% and cleared to deploy.");
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function reset(){
+    $("statusText").textContent = "REPAIRS UNDERWAY";
+    $("statusBadge").classList.remove("ready");
+    build();
+    log("New battle damage registered — <b>6 systems</b> in the repair queue.");
+  }
+  $("resetBtn").addEventListener("click", reset);
+  $("againBtn").addEventListener("click", reset);
+
+  build();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
