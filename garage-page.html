@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Garage — Mech Loadout Bay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e13; --bg2:#10141c; --panel:#151a24; --panel2:#1a2130;
+    --line:#2a3347; --line2:#3a4763;
+    --ink:#eef2f8; --muted:#97a3ba; --faint:#66738c;
+    --accent:#ffb02e; --accent2:#38e1ff; --good:#4ade80; --bad:#fb7185;
+    --paint:#3d5a80; --paint2:#2b3f5c; --glow:#38e1ff;
+    --stage1:#1a2233; --stage2:#0a0d13;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#dfe4ec; --bg2:#e9edf4; --panel:#ffffff; --panel2:#eef1f7;
+      --line:#c3ccd9; --line2:#a9b5c8;
+      --ink:#141a26; --muted:#4d5a70; --faint:#7a879c;
+      --stage1:#c9d3e2; --stage2:#aeb9cc;
+      color-scheme: light;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Rajdhani",system-ui,sans-serif;
+    background:
+      radial-gradient(900px 480px at 50% -80px, rgba(56,225,255,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg2), var(--bg) 340px);
+    color:var(--ink);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  .mono{font-family:"Share Tech Mono",monospace}
+  .display{font-family:"Chakra Petch",sans-serif}
+
+  /* ---------- top status strip ---------- */
+  .topbar{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:12px 18px; border-bottom:1px solid var(--line);
+    background:color-mix(in srgb, var(--panel) 82%, transparent);
+    position:sticky; top:0; z-index:40; backdrop-filter:blur(8px);
+  }
+  .bay-tag{font-family:"Share Tech Mono",monospace; font-size:11px; letter-spacing:.18em; color:var(--accent2); border:1px solid var(--line2); padding:4px 8px; border-radius:4px}
+  .topbar h1{font-family:"Chakra Petch",sans-serif; font-size:19px; margin:0; letter-spacing:.04em}
+  .topbar h1 span{color:var(--accent)}
+  .top-meta{margin-left:auto; display:flex; gap:18px; align-items:center; flex-wrap:wrap}
+  .top-meta .stat-mini{text-align:right}
+  .top-meta .stat-mini b{display:block; font-family:"Chakra Petch",sans-serif; font-size:17px; line-height:1}
+  .top-meta .stat-mini small{font-size:10px; letter-spacing:.16em; color:var(--muted); text-transform:uppercase}
+  .pwr b{color:var(--accent)}
+
+  /* ---------- layout ---------- */
+  .layout{
+    display:grid; gap:14px; padding:14px;
+    grid-template-columns: 218px minmax(0,1fr) 300px;
+    max-width:1560px; margin:0 auto; align-items:start;
+  }
+  @media (max-width:1080px){ .layout{grid-template-columns:190px minmax(0,1fr)} .detail-col{grid-column:1/-1} }
+  @media (max-width:720px){ .layout{grid-template-columns:1fr} }
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:10px}
+  .panel-head{padding:10px 14px 8px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+  .panel-head h2{font-family:"Chakra Petch",sans-serif; font-size:13px; letter-spacing:.14em; margin:0; text-transform:uppercase}
+  .panel-head small{font-size:11px; color:var(--faint); font-family:"Share Tech Mono",monospace}
+
+  /* ---------- slot rail ---------- */
+  .slot-list{display:flex; flex-direction:column; gap:8px; padding:12px}
+  .slot-btn{
+    display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+    background:var(--panel2); border:1px solid var(--line); border-radius:8px;
+    color:var(--ink); padding:9px 10px; cursor:pointer; font-family:inherit;
+    transition:border-color .15s, transform .15s;
+  }
+  .slot-btn:hover{border-color:var(--line2)}
+  .slot-btn.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .slot-btn .ic{width:34px;height:34px;flex:0 0 34px;border-radius:6px;background:var(--bg2);border:1px solid var(--line);display:grid;place-items:center}
+  .slot-btn .ic svg{width:22px;height:22px}
+  .slot-btn b{display:block; font-size:14px; line-height:1.05; letter-spacing:.03em}
+  .slot-btn small{display:block; font-size:11.5px; color:var(--muted); line-height:1.1; margin-top:1px}
+  .slot-btn .chev{margin-left:auto; color:var(--faint); font-size:16px}
+  .rail-note{padding:0 12px 12px; font-size:12.5px; color:var(--muted); line-height:1.45}
+
+  /* ---------- stage ---------- */
+  .stage-panel{overflow:hidden}
+  .stage{
+    position:relative; height:560px; overflow:hidden; cursor:zoom-out;
+    background:
+      radial-gradient(420px 200px at 50% 8%, rgba(56,225,255,.14), transparent 65%),
+      linear-gradient(180deg, var(--stage1), var(--stage2) 78%);
+  }
+  @media (max-width:720px){ .stage{height:480px} }
+  /* hangar dressing */
+  .stage::before{ /* floor grid */
+    content:""; position:absolute; left:-10%; right:-10%; bottom:0; height:110px;
+    background:
+      repeating-linear-gradient(90deg, rgba(120,150,200,.16) 0 1px, transparent 1px 56px),
+      repeating-linear-gradient(0deg, rgba(120,150,200,.12) 0 1px, transparent 1px 18px);
+    transform:perspective(300px) rotateX(48deg); transform-origin:bottom;
+  }
+  .stage::after{ /* back wall seams */
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(90deg, transparent 0 118px, rgba(120,150,200,.07) 118px 119px);
+  }
+  .beam{position:absolute; top:-30px; width:130px; height:340px; pointer-events:none; opacity:.5;
+    background:linear-gradient(180deg, rgba(140,220,255,.20), transparent 85%); clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);}
+  .beam.l{left:6%} .beam.r{right:6%}
+  .floor-glow{position:absolute; left:50%; bottom:26px; transform:translateX(-50%); width:300px; height:44px; border-radius:50%;
+    background:radial-gradient(closest-side, color-mix(in srgb, var(--glow) 34%, transparent), transparent); filter:blur(4px); pointer-events:none}
+  .pad-ring{position:absolute; left:50%; bottom:34px; transform:translateX(-50%); width:290px; height:52px; border-radius:50%;
+    border:2px solid color-mix(in srgb, var(--glow) 45%, transparent); pointer-events:none}
+  .pad-ring::after{content:""; position:absolute; inset:9px; border-radius:50%; border:1px dashed color-mix(in srgb, var(--glow) 30%, transparent)}
+
+  .mech-wrap{
+    position:absolute; inset:0; display:grid; place-items:end center;
+    transition:transform .65s cubic-bezier(.22,.9,.28,1);
+    transform-origin:50% 60%;
+    will-change:transform;
+  }
+  .mech{width:min(330px,72vw); height:auto; margin-bottom:44px; filter:drop-shadow(0 18px 22px rgba(0,0,0,.45))}
+  .mech .paint{fill:var(--paint)} .mech .paint2{fill:var(--paint2)}
+  .mech .glowy{fill:var(--glow)}
+  .core-pulse{animation:pulse 2.6s ease-in-out infinite; transform-origin:center; transform-box:fill-box}
+  @keyframes pulse{0%,100%{opacity:.65}50%{opacity:1}}
+  @media (prefers-reduced-motion: reduce){ .core-pulse{animation:none} .mech-wrap{transition:none} }
+
+  /* variant detail layers */
+  .v-head,.v-core,.v-sh,.v-back{display:none}
+  svg[data-head="sentinel"] .v-head-sentinel{display:block}
+  svg[data-head="striker"] .v-head-striker{display:block}
+  svg[data-head="warden"] .v-head-warden{display:block}
+  svg[data-head="spectre"] .v-head-spectre{display:block}
+  svg[data-core="fusion"] .v-core-fusion{display:block}
+  svg[data-core="bulwark"] .v-core-bulwark{display:block}
+  svg[data-core="overclock"] .v-core-overclock{display:block}
+  svg[data-sh="standard"] .v-sh-standard{display:block}
+  svg[data-sh="siege"] .v-sh-siege{display:block}
+  svg[data-sh="aegis"] .v-sh-aegis{display:block}
+  svg[data-back="tesla"] .v-back-tesla{display:block}
+  svg[data-back="mortar"] .v-back-mortar{display:block}
+  svg[data-back="wings"] .v-back-wings{display:block}
+
+  /* hotspots */
+  .hotspot{
+    position:absolute; z-index:6; transform:translate(-50%,-50%);
+    display:flex; align-items:center; gap:6px;
+    background:rgba(10,14,22,.78); border:1px solid var(--accent2); color:#eaf7ff;
+    font-family:"Share Tech Mono",monospace; font-size:10.5px; letter-spacing:.08em;
+    padding:5px 9px 5px 6px; border-radius:999px; cursor:pointer; backdrop-filter:blur(3px);
+    transition:opacity .3s, background .15s, border-color .15s;
+  }
+  .hotspot i{width:9px;height:9px;border-radius:50%;background:var(--accent2);display:block; box-shadow:0 0 0 0 rgba(56,225,255,.6); animation:ping 2s infinite}
+  @keyframes ping{0%{box-shadow:0 0 0 0 rgba(56,225,255,.55)}70%{box-shadow:0 0 0 9px rgba(56,225,255,0)}100%{box-shadow:0 0 0 0 rgba(56,225,255,0)}}
+  @media (prefers-reduced-motion: reduce){ .hotspot i{animation:none} }
+  .hotspot:hover{background:rgba(20,30,48,.92)}
+  .hotspot.active{border-color:var(--accent); background:rgba(60,40,4,.85)}
+  .hotspot.active i{background:var(--accent)}
+  .stage.zoomed .hotspot:not(.active){opacity:.25}
+  .stage.zoomed .hotspot.active{opacity:1}
+
+  .stage-tools{position:absolute; bottom:12px; left:12px; z-index:8; display:flex; gap:8px; flex-wrap:wrap}
+  .tool-btn{
+    background:rgba(10,14,22,.8); color:#eaf2fb; border:1px solid var(--line2);
+    font-family:"Share Tech Mono",monospace; font-size:11px; letter-spacing:.06em;
+    padding:7px 11px; border-radius:6px; cursor:pointer;
+  }
+  .tool-btn:hover{border-color:var(--accent2)}
+  .zoom-label{position:absolute; top:10px; left:12px; z-index:8; font-family:"Share Tech Mono",monospace; font-size:11px; letter-spacing:.14em; color:#bfe9ff; background:rgba(10,14,22,.7); padding:6px 9px; border-radius:6px; border:1px solid rgba(56,225,255,.35)}
+
+  /* popup part menu — floats over the stage */
+  .popup{
+    position:absolute; z-index:9; right:12px; top:52px; width:272px; max-width:calc(100% - 24px);
+    background:color-mix(in srgb, var(--panel) 96%, transparent); border:1px solid var(--accent);
+    border-radius:10px; box-shadow:0 18px 40px rgba(0,0,0,.45);
+    opacity:0; pointer-events:none; transform:translateY(8px) scale(.98); transition:opacity .22s, transform .22s;
+  }
+  .popup.open{opacity:1; pointer-events:auto; transform:none}
+  .popup-head{padding:10px 12px 8px; border-bottom:1px solid var(--line); display:flex; align-items:flex-start; gap:8px}
+  .popup-head h3{margin:0; font-family:"Chakra Petch",sans-serif; font-size:14px; letter-spacing:.08em; text-transform:uppercase}
+  .popup-head p{margin:2px 0 0; font-size:12px; color:var(--muted); line-height:1.35}
+  .popup-close{margin-left:auto; background:none; border:1px solid var(--line); color:var(--ink); width:26px;height:26px; border-radius:6px; cursor:pointer; font-size:14px; line-height:1; flex:0 0 26px}
+  .popup-list{padding:8px; display:flex; flex-direction:column; gap:7px; max-height:308px; overflow:auto}
+  .opt{
+    display:flex; gap:10px; align-items:center; text-align:left; width:100%;
+    background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px;
+    cursor:pointer; color:var(--ink); font-family:inherit;
+  }
+  .opt:hover{border-color:var(--line2)}
+  .opt.equipped{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .opt .swatch{width:40px;height:40px;flex:0 0 40px;border-radius:6px;border:1px solid var(--line2); display:grid; place-items:center; background:var(--bg2)}
+  .opt .swatch svg{width:30px;height:30px}
+  .opt b{font-size:14.5px; display:block; line-height:1.05}
+  .opt small{font-size:11.5px; color:var(--muted); display:block; line-height:1.25; margin-top:2px}
+  .opt .tags{margin-left:auto; text-align:right; flex:0 0 auto}
+  .rarity{font-family:"Share Tech Mono",monospace; font-size:9.5px; letter-spacing:.1em; padding:2px 5px; border-radius:3px; border:1px solid var(--line2); color:var(--muted); text-transform:uppercase}
+  .rarity.rare{color:var(--accent2); border-color:var(--accent2)}
+  .rarity.epic{color:#c084fc; border-color:#c084fc}
+  .rarity.legendary{color:var(--accent); border-color:var(--accent)}
+  .eq-tag{display:block; margin-top:4px; font-size:10px; color:var(--accent); font-family:"Share Tech Mono",monospace; letter-spacing:.08em}
+  .delta{font-family:"Share Tech Mono",monospace; font-size:10.5px; display:block; margin-top:3px}
+  .delta .up{color:var(--good)} .delta .dn{color:var(--bad)}
+
+  /* stage footer: paint */
+  .stage-foot{display:flex; gap:14px; align-items:center; flex-wrap:wrap; padding:10px 14px; border-top:1px solid var(--line)}
+  .stage-foot .lbl{font-size:11px; letter-spacing:.16em; color:var(--muted); text-transform:uppercase; font-family:"Share Tech Mono",monospace}
+  .paints{display:flex; gap:7px; flex-wrap:wrap}
+  .paint-btn{width:26px;height:26px;border-radius:50%; border:2px solid var(--line2); cursor:pointer; padding:0}
+  .paint-btn.active{border-color:var(--accent); box-shadow:0 0 0 2px var(--panel), 0 0 0 4px var(--accent)}
+  .stage-foot .hint{margin-left:auto; font-size:12px; color:var(--faint)}
+
+  /* ---------- detail column ---------- */
+  .stat-rows{padding:12px 14px; display:flex; flex-direction:column; gap:11px}
+  .stat-row .top{display:flex; justify-content:space-between; font-size:12.5px; letter-spacing:.06em}
+  .stat-row .top b{font-family:"Chakra Petch",sans-serif}
+  .stat-row .top span{font-family:"Share Tech Mono",monospace; color:var(--muted)}
+  .bar{height:8px; background:var(--bg2); border:1px solid var(--line); border-radius:99px; overflow:hidden; margin-top:4px}
+  .bar i{display:block; height:100%; background:linear-gradient(90deg, var(--accent2), var(--accent)); border-radius:99px; transition:width .5s ease}
+  .build-list{padding:6px 14px 12px; display:flex; flex-direction:column}
+  .build-row{display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px dashed var(--line); font-size:13.5px}
+  .build-row:last-child{border-bottom:none}
+  .build-row span{color:var(--muted); font-size:11px; letter-spacing:.12em; text-transform:uppercase; padding-top:2px; flex:0 0 auto}
+  .build-row b{text-align:right; font-weight:600}
+  .detail-actions{display:flex; gap:8px; padding:0 14px 14px; flex-wrap:wrap}
+  .btn{
+    font-family:"Chakra Petch",sans-serif; font-size:12.5px; letter-spacing:.08em;
+    padding:9px 13px; border-radius:7px; cursor:pointer; border:1px solid var(--line2);
+    background:var(--panel2); color:var(--ink); text-transform:uppercase;
+  }
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#1c1302}
+  .btn:hover{filter:brightness(1.1)}
+  .toast{font-size:12.5px; color:var(--good); min-height:16px; padding:0 14px 10px; font-family:"Share Tech Mono",monospace}
+
+  /* ---------- weapon bay ---------- */
+  .weapons{max-width:1560px; margin:0 auto; padding:0 14px 20px}
+  .weapon-slots{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:12px 14px 4px}
+  @media (max-width:560px){ .weapon-slots{grid-template-columns:1fr} }
+  .wslot{
+    border:1px solid var(--line); border-radius:8px; background:var(--panel2); padding:10px 12px;
+    display:flex; gap:12px; align-items:center; cursor:pointer; text-align:left; color:var(--ink); font-family:inherit; width:100%;
+  }
+  .wslot.armed{border-color:var(--accent2); box-shadow:0 0 0 1px var(--accent2) inset}
+  .wslot .wic{width:46px;height:46px;flex:0 0 46px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);display:grid;place-items:center}
+  .wslot .wic svg{width:34px;height:34px}
+  .wslot small{display:block; font-size:10.5px; letter-spacing:.14em; color:var(--muted); text-transform:uppercase; font-family:"Share Tech Mono",monospace}
+  .wslot b{display:block; font-size:16px; line-height:1.1}
+  .wslot .wmeta{font-size:12px; color:var(--muted)}
+  .weapon-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:9px; padding:12px 14px 14px}
+  .wcard{
+    background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:10px;
+    cursor:pointer; text-align:left; color:var(--ink); font-family:inherit; display:flex; flex-direction:column; gap:6px;
+  }
+  .wcard:hover{border-color:var(--line2)}
+  .wcard.in-primary{border-color:var(--accent2); box-shadow:0 0 0 1px var(--accent2) inset}
+  .wcard.in-heavy{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .wcard .wtop{display:flex; gap:9px; align-items:center}
+  .wcard .wic{width:38px;height:38px;flex:0 0 38px;border-radius:7px;background:var(--bg2);border:1px solid var(--line);display:grid;place-items:center}
+  .wcard .wic svg{width:28px;height:28px}
+  .wcard b{font-size:14.5px; line-height:1.05}
+  .wcard .cls{font-size:10.5px; color:var(--muted); font-family:"Share Tech Mono",monospace; letter-spacing:.06em}
+  .wcard p{margin:0; font-size:12.5px; color:var(--muted); line-height:1.35}
+  .wcard .wstats{display:flex; gap:10px; font-family:"Share Tech Mono",monospace; font-size:10.5px; color:var(--faint); margin-top:auto}
+  .wcard .wstats b{font-size:10.5px; color:var(--ink)}
+  .slot-pill{margin-left:auto; font-family:"Share Tech Mono",monospace; font-size:9.5px; padding:2px 6px; border-radius:3px; letter-spacing:.08em}
+  .slot-pill.p{background:rgba(56,225,255,.15); color:var(--accent2); border:1px solid var(--accent2)}
+  .slot-pill.h{background:rgba(255,176,46,.14); color:var(--accent); border:1px solid var(--accent)}
+  footer{max-width:1560px; margin:0 auto; padding:0 18px 26px; color:var(--faint); font-size:12px; display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="bay-tag">BAY 07 // HANGAR</span>
+  <h1>VANGUARD <span>MK-IV</span> — MECH GARAGE</h1>
+  <div class="top-meta">
+    <div class="stat-mini"><small>Class</small><b>ASSAULT</b></div>
+    <div class="stat-mini"><small>Pilot</small><b>DWAYNE</b></div>
+    <div class="stat-mini pwr"><small>Power Rating</small><b id="powerRating">742</b></div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: hardpoint rail -->
+  <section class="panel" aria-label="Mech hardpoints">
+    <div class="panel-head"><h2>Hardpoints</h2><small>6 SLOTS</small></div>
+    <div class="slot-list" id="slotList"></div>
+    <p class="rail-note">Tap a hardpoint here — or tap the mech itself — to zoom the camera in and swap that part. Changes apply instantly and re-rate the build.</p>
+  </section>
+
+  <!-- CENTER: stage -->
+  <section class="panel stage-panel" aria-label="Mech bay">
+    <div class="stage" id="stage">
+      <div class="beam l"></div><div class="beam r"></div>
+      <div class="floor-glow"></div><div class="pad-ring"></div>
+      <div class="zoom-label" id="zoomLabel">CAM · FULL FRAME</div>
+      <div class="stage-tools">
+        <button class="tool-btn" id="resetCamBtn" type="button">⟲ RESET CAM</button>
+        <button class="tool-btn" id="spinBtn" type="button">TURNTABLE: OFF</button>
+      </div>
+
+      <div class="mech-wrap" id="mechWrap">
+        <!-- ============ MECH ============ -->
+        <svg class="mech" id="mechSvg" viewBox="0 0 400 560" role="img" aria-label="Vanguard MK-IV mech, front view"
+             data-head="sentinel" data-core="fusion" data-sh="standard" data-back="none">
+          <!-- back unit variants (behind body) -->
+          <g class="v-back v-back-tesla">
+            <rect x="188" y="58" width="24" height="86" rx="8" fill="#232c3f"/>
+            <circle cx="200" cy="52" r="17" fill="none" stroke="#38e1ff" stroke-width="4"/>
+            <circle cx="200" cy="52" r="6" class="glowy"/>
+            <path d="M172 84 L156 40 M228 84 L244 40" stroke="#38e1ff" stroke-width="3"/>
+          </g>
+          <g class="v-back v-back-mortar">
+            <rect x="96" y="96" width="34" height="58" rx="8" fill="#232c3f" transform="rotate(-16 113 125)"/>
+            <rect x="270" y="96" width="34" height="58" rx="8" fill="#232c3f" transform="rotate(16 287 125)"/>
+            <circle cx="106" cy="104" r="8" fill="#0d1119"/><circle cx="294" cy="104" r="8" fill="#0d1119"/>
+          </g>
+          <g class="v-back v-back-wings">
+            <path d="M150 130 L52 84 L70 176 L150 190 Z" fill="#232c3f"/>
+            <path d="M250 130 L348 84 L330 176 L250 190 Z" fill="#232c3f"/>
+            <path d="M140 150 L84 122 L92 162 L140 168 Z" class="glowy" opacity=".55"/>
+            <path d="M260 150 L316 122 L308 162 L260 168 Z" class="glowy" opacity=".55"/>
+          </g>
+
+          <!-- legs -->
+          <g>
+            <path d="M158 330 L146 452 L140 512 L182 512 L186 452 L192 330 Z" class="paint2"/>
+            <path d="M208 330 L214 452 L218 512 L260 512 L254 452 L242 330 Z" class="paint2"/>
+            <rect x="138" y="392" width="52" height="34" rx="8" class="paint"/>
+            <rect x="210" y="392" width="52" height="34" rx="8" class="paint"/>
+            <rect x="150" y="398" width="28" height="8" rx="4" class="glowy" opacity=".7"/>
+            <rect x="222" y="398" width="28" height="8" rx="4" class="glowy" opacity=".7"/>
+            <path d="M132 512 h62 l6 16 h-76 Z" fill="#171e2c"/>
+            <path d="M206 512 h62 l6 16 h-76 Z" fill="#171e2c" transform="translate(0,0)"/>
+            <rect x="128" y="526" width="66" height="6" rx="3" class="glowy" opacity=".5"/>
+            <rect x="202" y="526" width="66" height="6" rx="3" class="glowy" opacity=".5"/>
+            <rect x="168" y="318" width="64" height="22" rx="8" fill="#171e2c"/>
+          </g>
+
+          <!-- arms -->
+          <g id="armL">
+            <path d="M104 176 L74 268 L82 348 L118 352 L126 262 L132 190 Z" class="paint2"/>
+            <rect x="76" y="338" width="46" height="42" rx="10" class="paint"/>
+            <rect x="86" y="348" width="26" height="7" rx="3.5" class="glowy" opacity=".65"/>
+          </g>
+          <g id="armR">
+            <path d="M296 176 L326 268 L318 348 L282 352 L274 262 L268 190 Z" class="paint2"/>
+            <rect x="278" y="338" width="46" height="42" rx="10" class="paint"/>
+            <rect x="288" y="348" width="26" height="7" rx="3.5" class="glowy" opacity=".65"/>
+          </g>
+          <!-- held weapon silhouette (right side) -->
+          <g id="heldWeapon"></g>
+
+          <!-- pauldrons -->
+          <g>
+            <path d="M96 148 q-34 6 -36 44 l4 30 q40 10 66 -8 l6 -44 q-16 -24 -40 -22Z" class="paint"/>
+            <path d="M304 148 q34 6 36 44 l-4 30 q-40 10 -66 -8 l-6 -44 q16 -24 40 -22Z" class="paint"/>
+            <g class="v-sh v-sh-standard">
+              <rect x="72" y="160" width="46" height="9" rx="4.5" class="glowy" opacity=".8"/>
+              <rect x="282" y="160" width="46" height="9" rx="4.5" class="glowy" opacity=".8"/>
+            </g>
+            <g class="v-sh v-sh-siege">
+              <rect x="58" y="128" width="52" height="26" rx="7" fill="#232c3f"/>
+              <rect x="290" y="128" width="52" height="26" rx="7" fill="#232c3f"/>
+              <circle cx="84" cy="141" r="6" fill="#ffb02e"/><circle cx="316" cy="141" r="6" fill="#ffb02e"/>
+            </g>
+            <g class="v-sh v-sh-aegis">
+              <path d="M62 150 L30 190 L52 236 L84 214 L88 168 Z" fill="#2b3a55" stroke="#38e1ff" stroke-width="2"/>
+              <path d="M338 150 L370 190 L348 236 L316 214 L312 168 Z" fill="#2b3a55" stroke="#38e1ff" stroke-width="2"/>
+            </g>
+          </g>
+
+          <!-- torso -->
+          <g>
+            <path d="M138 168 L262 168 L276 268 L252 336 L148 336 L124 268 Z" class="paint"/>
+            <path d="M152 182 L248 182 L258 258 L240 318 L160 318 L142 258 Z" class="paint2"/>
+            <circle cx="200" cy="238" r="27" fill="#0d1420" stroke="#45536e" stroke-width="3"/>
+            <circle cx="200" cy="238" r="16" class="glowy core-pulse"/>
+            <g class="v-core v-core-fusion">
+              <circle cx="200" cy="238" r="21" fill="none" stroke="#38e1ff" stroke-width="2" stroke-dasharray="7 6"/>
+            </g>
+            <g class="v-core v-core-bulwark">
+              <path d="M160 196 L240 196 L246 226 L154 226 Z" fill="#171e2c"/>
+              <path d="M160 288 L240 288 L234 306 L166 306 Z" fill="#171e2c"/>
+              <rect x="188" y="200" width="24" height="6" rx="3" fill="#ffb02e"/>
+            </g>
+            <g class="v-core v-core-overclock">
+              <path d="M168 190 L182 232 L172 236 L190 282" fill="none" stroke="#ffb02e" stroke-width="4" stroke-linejoin="round"/>
+              <path d="M232 190 L218 232 L228 236 L210 282" fill="none" stroke="#ffb02e" stroke-width="4" stroke-linejoin="round"/>
+            </g>
+            <rect x="150" y="160" width="100" height="12" rx="6" fill="#171e2c"/>
+          </g>
+
+          <!-- head -->
+          <g>
+            <rect x="186" y="118" width="28" height="22" fill="#232c3f"/>
+            <path d="M162 78 q38 -26 76 0 l8 44 q-6 26 -46 26 q-40 0 -46 -26 Z" class="paint"/>
+            <path id="visor" d="M168 104 L232 104 L226 122 L174 122 Z" class="glowy"/>
+            <g class="v-head v-head-sentinel">
+              <rect x="196" y="34" width="8" height="26" rx="4" fill="#232c3f"/>
+              <circle cx="200" cy="30" r="6" fill="#ffb02e"/>
+            </g>
+            <g class="v-head v-head-striker">
+              <path d="M200 44 L214 84 L186 84 Z" fill="#ffb02e"/>
+            </g>
+            <g class="v-head v-head-warden">
+              <path d="M158 84 L138 66 L146 100 Z" class="paint2"/>
+              <path d="M242 84 L262 66 L254 100 Z" class="paint2"/>
+            </g>
+            <g class="v-head v-head-spectre">
+              <path d="M170 62 q30 -18 60 0 l-6 14 q-24 -12 -48 0 Z" fill="#38e1ff" opacity=".75"/>
+              <circle cx="200" cy="112" r="5" fill="#0d1420"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <!-- hotspots injected by JS -->
+      <div id="hotspots"></div>
+
+      <!-- popup part menu -->
+      <div class="popup" id="popup" role="dialog" aria-label="Part options">
+        <div class="popup-head">
+          <div>
+            <h3 id="popupTitle">Part</h3>
+            <p id="popupDesc"></p>
+          </div>
+          <span id="popupCloseSlot"></span>
+        </div>
+        <div class="popup-list" id="popupList"></div>
+      </div>
+    </div>
+
+    <div class="stage-foot">
+      <span class="lbl">Coating</span>
+      <div class="paints" id="paints"></div>
+      <span class="hint">Tap the mech to zoom · tap empty bay or Reset Cam to pull back</span>
+    </div>
+  </section>
+
+  <!-- RIGHT: stats + build -->
+  <aside class="detail-col" style="display:flex;flex-direction:column;gap:14px">
+    <section class="panel" aria-label="Mech stats">
+      <div class="panel-head"><h2>Performance</h2><small>LIVE RATING</small></div>
+      <div class="stat-rows" id="statRows"></div>
+    </section>
+    <section class="panel" aria-label="Current build">
+      <div class="panel-head"><h2>Current Build</h2><small id="buildCode" class="mono">VG4-0000</small></div>
+      <div class="build-list" id="buildList"></div>
+      <div class="detail-actions">
+        <button class="btn primary" id="copyBtn" type="button">Copy Loadout</button>
+        <button class="btn" id="randomBtn" type="button">Randomize</button>
+        <button class="btn" id="stockBtn" type="button">Stock Build</button>
+      </div>
+      <div class="toast" id="toast" role="status"></div>
+    </section>
+  </aside>
+</div>
+
+<!-- WEAPON BAY -->
+<div class="weapons">
+  <section class="panel" aria-label="Weapon bay">
+    <div class="panel-head">
+      <h2>Weapon Bay</h2>
+      <small>SELECT A SLOT, THEN A WEAPON — OR TAP A WEAPON TO FILL THE ARMED SLOT</small>
+    </div>
+    <div class="weapon-slots">
+      <button class="wslot armed" id="wslotPrimary" type="button"></button>
+      <button class="wslot" id="wslotHeavy" type="button"></button>
+    </div>
+    <div class="weapon-grid" id="weaponGrid"></div>
+  </section>
+</div>
+
+<footer>
+  <span class="mono">VANGUARD MK-IV · GARAGE BUILD v2.4 · ALL PARTS FITTED IN-BAY</span>
+  <span>Weapons drawn from the Robot Fighter arsenal — 16 systems on the rack.</span>
+</footer>
+
+<script>
+/* ==================== DATA ==================== */
+var SLOT_ICON = {
+  head:'<svg viewBox="0 0 24 24" fill="none" stroke="#38e1ff" stroke-width="1.7"><path d="M5 10a7 7 0 0 1 14 0v4a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5z"/><path d="M8 12h8"/></svg>',
+  core:'<svg viewBox="0 0 24 24" fill="none" stroke="#38e1ff" stroke-width="1.7"><path d="M6 4h12l2 7-3 9H7L4 11z"/><circle cx="12" cy="12" r="2.6"/></svg>',
+  shoulders:'<svg viewBox="0 0 24 24" fill="none" stroke="#38e1ff" stroke-width="1.7"><path d="M3 9q-1 5 2 7l5-1 1-6zM21 9q1 5-2 7l-5-1-1-6z"/></svg>',
+  arms:'<svg viewBox="0 0 24 24" fill="none" stroke="#38e1ff" stroke-width="1.7"><path d="M7 3v9l-2 6a2.4 2.4 0 0 0 5 0V8M17 3v9l2 6a2.4 2.4 0 0 1-5 0V8"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="#38e1ff" stroke-width="1.7"><rect x="9" y="6" width="6" height="12" rx="2"/><path d="M12 6V3M5 9l4 3M19 9l-4 3"/></svg>',
+  legs:'<svg viewBox="0 0 24 24" fill="none" stroke="#38e1ff" stroke-width="1.7"><path d="M9 3l-1 9-1 7h4l1-7M15 3l1 9 1 7h-4l-1-7"/></svg>'
+};
+
+var SLOTS = {
+  head:{ label:'Helmet', sub:'Head unit', desc:'Sensor helmets. Visor, targeting and comms live here.', pos:{left:'50%',top:'13%'}, cam:{s:2.35,x:0,y:27,label:'CAM · HELMET — CLOSE-UP'},
+    options:[
+      {id:'sentinel', name:'Sentinel Helm', desc:'Balanced sensors, signal antenna, all-round visor.', rarity:'standard', stats:{armor:6,speed:6,power:5,energy:7}, visor:'#38e1ff'},
+      {id:'striker', name:'Striker Helm', desc:'Aggressive fin crest. Faster target lock, lighter shell.', rarity:'rare', stats:{armor:4,speed:9,power:7,energy:5}, visor:'#ffb02e'},
+      {id:'warden', name:'Warden Helm', desc:'Horned heavy helm. Thick plate, shrugs off headshots.', rarity:'epic', stats:{armor:10,speed:3,power:6,energy:4}, visor:'#fb7185'},
+      {id:'spectre', name:'Spectre Visor Helm', desc:'Low-profile stealth brow with a single optic eye.', rarity:'legendary', stats:{armor:5,speed:8,power:6,energy:10}, visor:'#4ade80'}
+    ]},
+  core:{ label:'Core', sub:'Chest reactor', desc:'The reactor and chest plate. Sets the mech\u2019s power heart.', pos:{left:'50%',top:'42%'}, cam:{s:1.9,x:0,y:12,label:'CAM · CORE — CLOSE-UP'},
+    options:[
+      {id:'fusion', name:'Fusion Core', desc:'Standard reactor ring. Steady output, cool running.', rarity:'standard', stats:{armor:6,speed:6,power:7,energy:7}},
+      {id:'bulwark', name:'Bulwark Plate Core', desc:'Extra chest plating over the reactor. A walking wall.', rarity:'rare', stats:{armor:11,speed:3,power:6,energy:5}},
+      {id:'overclock', name:'Overclock Core', desc:'Exposed conduits push the reactor past redline.', rarity:'epic', stats:{armor:4,speed:7,power:11,energy:6}},
+      {id:'prism', name:'Prism Cell Core', desc:'Crystalline cell. Huge energy reserves for beam systems.', rarity:'legendary', stats:{armor:6,speed:6,power:9,energy:12}}
+    ]},
+  shoulders:{ label:'Pauldrons', sub:'Shoulder armor', desc:'Shoulder plates — armor, shields and micro-munitions mount here.', pos:{left:'19%',top:'29%'}, cam:{s:2.0,x:16,y:20,label:'CAM · PAULDRONS — CLOSE-UP'},
+    options:[
+      {id:'standard', name:'Standard Pauldrons', desc:'Factory plates with running lights. Does the job.', rarity:'standard', stats:{armor:6,speed:6,power:5,energy:5}},
+      {id:'siege', name:'Siege Pauldrons', desc:'Turreted shoulders with micro-mortar pods on top.', rarity:'rare', stats:{armor:8,speed:4,power:9,energy:5}},
+      {id:'aegis', name:'Aegis Wing Plates', desc:'Flared energy-edged plates that shed incoming fire.', rarity:'epic', stats:{armor:10,speed:5,power:6,energy:8}},
+      {id:'razor', name:'Razor Pauldrons', desc:'Slim angled plates built for shoulder-charge rushes.', rarity:'rare', stats:{armor:5,speed:9,power:7,energy:4}}
+    ]},
+  arms:{ label:'Arms', sub:'Arm assemblies', desc:'Arm servos and fists. Drives melee damage and weapon handling.', pos:{left:'82%',top:'52%'}, cam:{s:2.0,x:-17,y:-2,label:'CAM · ARMS — CLOSE-UP'},
+    options:[
+      {id:'servo', name:'Servo Arms Mk.2', desc:'Balanced actuators. Reliable in every fight.', rarity:'standard', stats:{armor:6,speed:6,power:6,energy:5}},
+      {id:'pile', name:'Pile-Driver Arms', desc:'Oversized fists and hydraulic rams. Slow, devastating.', rarity:'epic', stats:{armor:8,speed:3,power:12,energy:4}},
+      {id:'duelist', name:'Duelist Arms', desc:'Featherweight servos tuned for blade speed.', rarity:'rare', stats:{armor:4,speed:11,power:7,energy:6}},
+      {id:'titan', name:'Titan Grip Arms', desc:'Grapple-rated arms — built to hold anything, crush most things.', rarity:'legendary', stats:{armor:9,speed:5,power:10,energy:7}}
+    ]},
+  back:{ label:'Back Unit', sub:'Rear mount', desc:'Rear-mounted systems: coils, launchers and thruster wings.', pos:{left:'50%',top:'6.5%'}, cam:{s:2.1,x:0,y:30,label:'CAM · BACK UNIT — CLOSE-UP'},
+    options:[
+      {id:'none', name:'Clean Frame', desc:'Nothing mounted. Lightest possible silhouette.', rarity:'standard', stats:{armor:3,speed:9,power:3,energy:5}},
+      {id:'tesla', name:'Tesla Coil Pack', desc:'Ring coil that arcs lightning to anything close.', rarity:'epic', stats:{armor:5,speed:6,power:9,energy:10}},
+      {id:'mortar', name:'Twin Mortar Pack', desc:'Shoulder-fed mortar tubes for arcing bombardment.', rarity:'rare', stats:{armor:6,speed:4,power:10,energy:5}},
+      {id:'wings', name:'Ion Thruster Wings', desc:'Glowing thrust wings. Burst dashes and hover drifts.', rarity:'legendary', stats:{armor:5,speed:12,power:6,energy:9}}
+    ]},
+  legs:{ label:'Legs', sub:'Locomotion', desc:'Leg assemblies. Speed, stability and stomp power start here.', pos:{left:'50%',top:'76%'}, cam:{s:1.85,x:0,y:-24,label:'CAM · LEGS — CLOSE-UP'},
+    options:[
+      {id:'strider', name:'Strider Legs', desc:'Standard bipedal drive. Even pace, even wear.', rarity:'standard', stats:{armor:6,speed:6,power:5,energy:5}},
+      {id:'juggernaut', name:'Juggernaut Legs', desc:'Piston-thick legs. Unstoppable, unhurried.', rarity:'epic', stats:{armor:11,speed:3,power:9,energy:4}},
+      {id:'sprinter', name:'Sprinter Legs', desc:'Slim reverse-bent legs built for dash chains.', rarity:'rare', stats:{armor:4,speed:12,power:5,energy:6}},
+      {id:'seismic', name:'Seismic Stompers', desc:'Weighted feet that crack the ground on every stomp.', rarity:'legendary', stats:{armor:8,speed:5,power:11,energy:6}}
+    ]}
+};
+
+var W_ICONS = {
+  melee:'<svg viewBox="0 0 24 24" fill="none" stroke="#ffb02e" stroke-width="1.8"><path d="M5 19L14 5l4-1-1 4L8 21z"/></svg>',
+  blade:'<svg viewBox="0 0 24 24" fill="none" stroke="#38e1ff" stroke-width="1.8"><path d="M4 20L16 4l4-1-1 5L8 21z"/><path d="M4 20l-1 3 3-1"/></svg>',
+  cannon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="1.8"><rect x="3" y="10" width="13" height="5" rx="2"/><path d="M16 11h5M6 15v3M11 15v3"/></svg>',
+  disc:'<svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  hammer:'<svg viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="1.8"><path d="M12 9v11M5 4h14v6H5z"/></svg>',
+  spray:'<svg viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" stroke-width="1.8"><path d="M4 12h6l8-5v10l-8-5"/><path d="M18 4l2-1M18 20l2 1"/></svg>',
+  coil:'<svg viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="1.8"><path d="M13 2L5 13h5l-1 9 8-11h-5z"/></svg>',
+  drill:'<svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8"><path d="M3 12h10l8-4v8l-8 4z"/><path d="M7 9v6M11 9v6"/></svg>',
+  harpoon:'<svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8"><path d="M4 20L16 8M16 8l4-4M16 8l1 5M16 8l-5-1"/><path d="M4 20c4 1 7-1 9-3"/></svg>',
+  orb:'<svg viewBox="0 0 24 24" fill="none" stroke="#e879f9" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+  beam:'<svg viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="1.8"><path d="M3 12h13M16 12l5-4M16 12l5 4M6 8v8"/></svg>',
+  swarm:'<svg viewBox="0 0 24 24" fill="none" stroke="#a3e635" stroke-width="1.8"><circle cx="6" cy="7" r="1.6"/><circle cx="12" cy="5" r="1.6"/><circle cx="18" cy="8" r="1.6"/><circle cx="9" cy="13" r="1.6"/><circle cx="16" cy="15" r="1.6"/><circle cx="6" cy="19" r="1.6"/></svg>'
+};
+
+var WEAPONS = [
+  {id:'volt', name:'Volt Gauntlets', cls:'MELEE · FISTS', icon:'melee', anim:'3-punch lightning combo into a rising uppercut.', dmg:62, spd:88, rng:18},
+  {id:'saber', name:'Plasma Saber', cls:'MELEE · BLADE', icon:'blade', anim:'360° spinning slash that leaves light trails.', dmg:74, spd:80, rng:26},
+  {id:'railgun', name:'Railgun Arm Cannon', cls:'PRIMARY · CANNON', icon:'cannon', anim:'Staged charge-up, then one bolt with heavy recoil.', dmg:96, spd:34, rng:95},
+  {id:'chakram', name:'Mag Chakram', cls:'PRIMARY · DISC', icon:'disc', anim:'Spinning disc loops out and boomerangs back.', dmg:58, spd:72, rng:64},
+  {id:'hammer', name:'Seismic Hammer', cls:'HEAVY · HAMMER', icon:'hammer', anim:'Overhead slam with a ground shockwave ring.', dmg:98, spd:28, rng:24},
+  {id:'cryo', name:'Cryo Sprayer', cls:'PRIMARY · SPRAY', icon:'spray', anim:'Sweeping ice cone that frosts the ground.', dmg:44, spd:66, rng:42},
+  {id:'tesla', name:'Tesla Coil Backpack', cls:'HEAVY · COIL', icon:'coil', anim:'Crouch and discharge a lightning nova.', dmg:82, spd:40, rng:48},
+  {id:'drill', name:'Drill Fist', cls:'MELEE · DRILL', icon:'drill', anim:'Dashing drill punch straight through the target.', dmg:86, spd:58, rng:22},
+  {id:'harpoon', name:'Grapple Harpoon', cls:'PRIMARY · HARPOON', icon:'harpoon', anim:'Fire the harpoon, reel the target in close.', dmg:52, spd:62, rng:78},
+  {id:'rocket', name:'Rocket Fists', cls:'HEAVY · FISTS', icon:'melee', anim:'Fists detach, rocket forward, snap back on cables.', dmg:80, spd:70, rng:58},
+  {id:'grav', name:'Grav Slam', cls:'HEAVY · SLAM', icon:'hammer', anim:'Meteor drop with a gravity pulse ring.', dmg:94, spd:30, rng:30},
+  {id:'emp', name:'EMP Orb', cls:'HEAVY · ORB', icon:'orb', anim:'Slow floating orb, big flash-dome detonation.', dmg:70, spd:36, rng:70},
+  {id:'mortar', name:'Plasma Mortar', cls:'HEAVY · LAUNCHER', icon:'cannon', anim:'Arcing plasma shells rain down from above.', dmg:90, spd:26, rng:92},
+  {id:'sonic', name:'Sonic Cannon', cls:'PRIMARY · WAVE', icon:'spray', anim:'Charged sound blast that staggers crowds.', dmg:56, spd:52, rng:55},
+  {id:'nanite', name:'Nanite Swarm', cls:'PRIMARY · SWARM', icon:'swarm', anim:'A cloud of bots pours out and eats armor.', dmg:48, spd:84, rng:46},
+  {id:'prism', name:'Prism Beam', cls:'HEAVY · BEAM', icon:'beam', anim:'Sustained beam that splits into refracting rays.', dmg:92, spd:44, rng:88}
+];
+
+var PAINTS = [
+  {name:'Vanguard Blue', paint:'#3d5a80', paint2:'#2b3f5c', glow:'#38e1ff'},
+  {name:'Forge Orange', paint:'#8a4b1d', paint2:'#5f3312', glow:'#ffb02e'},
+  {name:'Crimson Protocol', paint:'#7c2434', paint2:'#521826', glow:'#fb7185'},
+  {name:'Toxic Circuit', paint:'#3f6212', paint2:'#2a4210', glow:'#4ade80'},
+  {name:'Void Purple', paint:'#4c2d68', paint2:'#33204a', glow:'#c084fc'},
+  {name:'Gunmetal', paint:'#4b5563', paint2:'#31363f', glow:'#e2e8f0'},
+  {name:'Desert Ops', paint:'#8a7648', paint2:'#5f5130', glow:'#facc15'},
+  {name:'Arctic White', paint:'#9fb2c8', paint2:'#6d8099', glow:'#7dd3fc'}
+];
+
+/* ==================== STATE ==================== */
+var STOCK = { head:'sentinel', core:'fusion', shoulders:'standard', arms:'servo', back:'none', legs:'strider' };
+var equipped = Object.assign({}, STOCK);
+var loadout = { primary:'volt', heavy:'hammer' };
+var armedSlot = 'primary';
+var activeSlot = null;
+var spinning = false, spinAngle = 0, spinTimer = null;
+
+function optOf(slot){ var s=SLOTS[slot]; for(var i=0;i<s.options.length;i++) if(s.options[i].id===equipped[slot]) return s.options[i]; return s.options[0]; }
+function weaponOf(id){ for(var i=0;i<WEAPONS.length;i++) if(WEAPONS[i].id===id) return WEAPONS[i]; return WEAPONS[0]; }
+
+function totals(){
+  var t={armor:0,speed:0,power:0,energy:0};
+  Object.keys(SLOTS).forEach(function(k){ var o=optOf(k); ['armor','speed','power','energy'].forEach(function(s){ t[s]+=o.stats[s]; }); });
+  return t; /* each 12..~60 → scale to 100 below */
+}
+function powerRating(){
+  var t=totals();
+  var base = Math.round((t.armor+t.speed+t.power+t.energy)/4*12.4);
+  var w = weaponOf(loadout.primary).dmg + weaponOf(loadout.heavy).dmg;
+  return base + Math.round(w*0.9);
+}
+
+/* ==================== RENDER: slots & hotspots ==================== */
+var slotList=document.getElementById('slotList');
+var hotspots=document.getElementById('hotspots');
+Object.keys(SLOTS).forEach(function(key){
+  var s=SLOTS[key];
+  var b=document.createElement('button');
+  b.className='slot-btn'; b.type='button'; b.dataset.slot=key;
+  b.innerHTML='<span class="ic">'+SLOT_ICON[key]+'</span><span><b>'+s.label+'</b><small data-eq></small></span><span class="chev">›</span>';
+  b.addEventListener('click', function(){ focusSlot(key); });
+  slotList.appendChild(b);
+
+  var h=document.createElement('button');
+  h.className='hotspot'; h.type='button'; h.dataset.slot=key;
+  h.style.left=s.pos.left; h.style.top=s.pos.top;
+  h.innerHTML='<i></i>'+s.label.toUpperCase();
+  h.setAttribute('aria-label','Zoom to '+s.label+' and choose parts');
+  h.addEventListener('click', function(ev){ ev.stopPropagation(); focusSlot(key); });
+  hotspots.appendChild(h);
+});
+
+/* ==================== RENDER: paints ==================== */
+var paintsEl=document.getElementById('paints');
+PAINTS.forEach(function(p, i){
+  var b=document.createElement('button');
+  b.className='paint-btn'+(i===0?' active':''); b.type='button';
+  b.style.background='linear-gradient(135deg,'+p.paint+' 55%,'+p.paint2+' 55%)';
+  b.title=p.name; b.setAttribute('aria-label','Coating: '+p.name);
+  b.addEventListener('click', function(){
+    document.querySelectorAll('.paint-btn').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active'); applyPaint(p); toast('Coating applied — '+p.name);
+  });
+  paintsEl.appendChild(b);
+});
+function applyPaint(p){
+  var r=document.documentElement.style;
+  r.setProperty('--paint', p.paint); r.setProperty('--paint2', p.paint2); r.setProperty('--glow', p.glow);
+}
+
+/* ==================== CAMERA / POPUP ==================== */
+var stage=document.getElementById('stage'), wrap=document.getElementById('mechWrap'),
+    popup=document.getElementById('popup'), zoomLabel=document.getElementById('zoomLabel'),
+    mechSvg=document.getElementById('mechSvg');
+
+function focusSlot(key){
+  activeSlot=key;
+  var s=SLOTS[key];
+  wrap.style.transform='scale('+s.cam.s+') translate('+s.cam.x+'%, '+s.cam.y+'%)';
+  stage.classList.add('zoomed');
+  zoomLabel.textContent=s.cam.label;
+  document.querySelectorAll('.slot-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.slot===key); });
+  document.querySelectorAll('.hotspot').forEach(function(h){ h.classList.toggle('active', h.dataset.slot===key); });
+  renderPopup(key);
+  popup.classList.add('open');
+}
+function resetCam(){
+  activeSlot=null;
+  wrap.style.transform = spinning ? wrap.style.transform : 'scale(1) translate(0,0)';
+  if(!spinning) wrap.style.transform='scale(1) translate(0,0)';
+  stage.classList.remove('zoomed');
+  zoomLabel.textContent='CAM · FULL FRAME';
+  popup.classList.remove('open');
+  unmountPopupClose();
+  document.querySelectorAll('.slot-btn,.hotspot').forEach(function(b){ b.classList.remove('active'); });
+}
+document.getElementById('resetCamBtn').addEventListener('click', function(ev){ ev.stopPropagation(); resetCam(); });
+/* close button exists only while the popup is open, so no hidden control sits in the closed state */
+function mountPopupClose(){
+  var slot=document.getElementById('popupCloseSlot');
+  if(slot.querySelector('button')) return;
+  var b=document.createElement('button');
+  b.className='popup-close'; b.type='button'; b.setAttribute('aria-label','Close part menu'); b.textContent='×';
+  b.addEventListener('click', function(ev){ ev.stopPropagation(); resetCam(); });
+  slot.appendChild(b);
+}
+function unmountPopupClose(){ document.getElementById('popupCloseSlot').innerHTML=''; }
+stage.addEventListener('click', function(ev){
+  if(activeSlot && !popup.contains(ev.target) && !ev.target.closest('.hotspot') && !ev.target.closest('.stage-tools')) resetCam();
+});
+document.addEventListener('keydown', function(ev){ if(ev.key==='Escape') resetCam(); });
+
+/* turntable */
+var spinBtn=document.getElementById('spinBtn');
+spinBtn.addEventListener('click', function(ev){
+  ev.stopPropagation();
+  spinning=!spinning;
+  spinBtn.textContent='TURNTABLE: '+(spinning?'ON':'OFF');
+  if(spinning){
+    resetCam();
+    spinTimer=setInterval(function(){
+      spinAngle=(spinAngle+1)%20;
+      var sc = 1 + Math.abs(10-spinAngle)/38;           /* gentle breathe in/out */
+      var tx = (spinAngle-10)*0.55;
+      wrap.style.transform='scale('+sc.toFixed(3)+') translate('+tx.toFixed(2)+'%, 0)';
+    },70);
+  } else {
+    clearInterval(spinTimer); wrap.style.transform='scale(1) translate(0,0)'; zoomLabel.textContent='CAM · FULL FRAME';
+  }
+});
+
+function renderPopup(key){
+  mountPopupClose();
+  var s=SLOTS[key], cur=optOf(key);
+  document.getElementById('popupTitle').textContent=s.label+' — '+s.sub;
+  document.getElementById('popupDesc').textContent=s.desc;
+  var list=document.getElementById('popupList'); list.innerHTML='';
+  s.options.forEach(function(o){
+    var isEq = o.id===equipped[key];
+    var dHtml=['armor','speed','power','energy'].map(function(st){
+      var d=o.stats[st]-cur.stats[st];
+      if(d===0) return '';
+      return '<span class="'+(d>0?'up':'dn')+'">'+st.slice(0,3).toUpperCase()+' '+(d>0?'+':'')+d+'</span>';
+    }).filter(Boolean).join(' ');
+    var b=document.createElement('button');
+    b.type='button'; b.className='opt'+(isEq?' equipped':'');
+    b.innerHTML='<span class="swatch">'+SLOT_ICON[key]+'</span>'+
+      '<span><b>'+o.name+'</b><small>'+o.desc+'</small>'+
+      (isEq?'<span class="eq-tag">● EQUIPPED</span>':(dHtml?'<span class="delta">'+dHtml+'</span>':''))+'</span>'+
+      '<span class="tags"><span class="rarity '+o.rarity+'">'+o.rarity+'</span></span>';
+    b.addEventListener('click', function(ev){ ev.stopPropagation(); equipPart(key, o.id); });
+    list.appendChild(b);
+  });
+}
+
+function equipPart(key, id){
+  equipped[key]=id;
+  var o=optOf(key);
+  if(key==='head'){ mechSvg.setAttribute('data-head', id); if(o.visor) document.getElementById('visor').setAttribute('fill', o.visor); document.documentElement.style.setProperty('--glow', o.visor); syncPaintGlow(o.visor); }
+  if(key==='core') mechSvg.setAttribute('data-core', id==='prism' ? 'fusion' : id);
+  if(key==='shoulders') mechSvg.setAttribute('data-sh', id==='razor' ? 'standard' : id);
+  if(key==='back') mechSvg.setAttribute('data-back', id);
+  refresh();
+  renderPopup(key);
+  toast(SLOTS[key].label+' fitted — '+o.name);
+}
+function syncPaintGlow(){ /* visor tint follows helm; coating buttons stay independent for body glow via floor */ }
+
+/* ==================== WEAPONS ==================== */
+function weaponIcon(w){ return W_ICONS[w.icon]; }
+function renderWeaponSlots(){
+  [['primary','wslotPrimary'],['heavy','wslotHeavy']].forEach(function(pair){
+    var slot=pair[0], w=weaponOf(loadout[slot]);
+    var el=document.getElementById(pair[1]);
+    el.className='wslot'+(armedSlot===slot?' armed':'');
+    el.innerHTML='<span class="wic">'+weaponIcon(w)+'</span><span><small>'+(slot==='primary'?'Primary Arm':'Heavy System')+(armedSlot===slot?' · ARMED FOR SWAP':'')+'</small><b>'+w.name+'</b><span class="wmeta">'+w.cls+' · DMG '+w.dmg+'</span></span>';
+  });
+  document.querySelectorAll('.wcard').forEach(function(c){
+    c.classList.toggle('in-primary', c.dataset.wid===loadout.primary);
+    c.classList.toggle('in-heavy', c.dataset.wid===loadout.heavy);
+    var pill=c.querySelector('.slot-pill');
+    if(c.dataset.wid===loadout.primary){ pill.className='slot-pill p'; pill.textContent='PRIMARY'; pill.style.display=''; }
+    else if(c.dataset.wid===loadout.heavy){ pill.className='slot-pill h'; pill.textContent='HEAVY'; pill.style.display=''; }
+    else pill.style.display='none';
+  });
+  drawHeldWeapon();
+}
+['primary','heavy'].forEach(function(slot){
+  document.getElementById(slot==='primary'?'wslotPrimary':'wslotHeavy').addEventListener('click', function(){
+    armedSlot=slot; renderWeaponSlots();
+    toast((slot==='primary'?'Primary Arm':'Heavy System')+' armed — pick a weapon below');
+  });
+});
+var grid=document.getElementById('weaponGrid');
+WEAPONS.forEach(function(w){
+  var c=document.createElement('button');
+  c.type='button'; c.className='wcard'; c.dataset.wid=w.id;
+  c.innerHTML='<span class="wtop"><span class="wic">'+weaponIcon(w)+'</span><span><b>'+w.name+'</b><br><span class="cls">'+w.cls+'</span></span><span class="slot-pill" style="display:none"></span></span>'+
+    '<p>'+w.anim+'</p>'+
+    '<span class="wstats"><span>DMG <b>'+w.dmg+'</b></span><span>SPD <b>'+w.spd+'</b></span><span>RNG <b>'+w.rng+'</b></span></span>';
+  c.addEventListener('click', function(){
+    var other = armedSlot==='primary' ? 'heavy' : 'primary';
+    if(loadout[other]===w.id) loadout[other]=loadout[armedSlot]; /* swap instead of duplicating */
+    loadout[armedSlot]=w.id;
+    refresh(); renderWeaponSlots();
+    toast(w.name+' → '+(armedSlot==='primary'?'Primary Arm':'Heavy System'));
+  });
+  grid.appendChild(c);
+});
+function drawHeldWeapon(){
+  var w=weaponOf(loadout.primary), g=document.getElementById('heldWeapon');
+  var shapes={
+    melee:'<rect x="330" y="352" width="26" height="34" rx="9" fill="#ffb02e" opacity=".9"/><path d="M336 344 l14-16 M350 344 l-4-20" stroke="#ffb02e" stroke-width="4" stroke-linecap="round"/>',
+    blade:'<path d="M338 348 L392 268 L402 262 L398 292 L352 366 Z" fill="#38e1ff" opacity=".9"/><rect x="330" y="348" width="16" height="14" rx="4" fill="#232c3f"/>',
+    cannon:'<rect x="332" y="338" width="58" height="26" rx="9" fill="#232c3f"/><rect x="382" y="345" width="22" height="12" rx="5" fill="#fb7185"/><circle cx="342" cy="351" r="7" fill="#fb7185"/>',
+    disc:'<circle cx="352" cy="330" r="24" fill="none" stroke="#4ade80" stroke-width="6"/><circle cx="352" cy="330" r="7" fill="#4ade80"/>',
+    hammer:'<rect x="344" y="330" width="9" height="62" rx="4" fill="#8b93a7"/><rect x="322" y="306" width="52" height="30" rx="7" fill="#c084fc"/>',
+    spray:'<path d="M334 344 L376 330 L376 366 L334 360 Z" fill="#7dd3fc" opacity=".9"/><rect x="326" y="346" width="12" height="12" rx="3" fill="#232c3f"/>',
+    coil:'<path d="M346 322 l-12 22 h10 l-6 20 20-26 h-11 l8-16z" fill="#facc15"/>',
+    drill:'<path d="M334 340 L386 352 L334 366 Z" fill="#f97316"/><rect x="324" y="342" width="14" height="22" rx="4" fill="#232c3f"/>',
+    harpoon:'<path d="M336 356 L392 318" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/><path d="M392 318 l-14 1 M392 318 l-2 13" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>',
+    orb:'<circle cx="356" cy="326" r="17" fill="#e879f9" opacity=".9"/><circle cx="356" cy="326" r="26" fill="none" stroke="#e879f9" stroke-width="2" stroke-dasharray="5 6"/>',
+    beam:'<rect x="330" y="342" width="34" height="20" rx="6" fill="#232c3f"/><path d="M364 352 h34 M386 344 l12 8 -12 8" stroke="#f472b6" stroke-width="5" fill="none" stroke-linecap="round"/>',
+    swarm:'<circle cx="348" cy="322" r="5" fill="#a3e635"/><circle cx="368" cy="332" r="5" fill="#a3e635"/><circle cx="356" cy="346" r="5" fill="#a3e635"/><circle cx="376" cy="318" r="4" fill="#a3e635"/>'
+  };
+  g.innerHTML = shapes[w.icon] || shapes.melee;
+}
+
+/* ==================== STATS / BUILD / ACTIONS ==================== */
+var statRows=document.getElementById('statRows');
+[['armor','ARMOR'],['speed','SPEED'],['power','POWER'],['energy','ENERGY']].forEach(function(pair){
+  var d=document.createElement('div'); d.className='stat-row';
+  d.innerHTML='<div class="top"><b>'+pair[1]+'</b><span id="stat-'+pair[0]+'">0</span></div><div class="bar"><i id="bar-'+pair[0]+'"></i></div>';
+  statRows.appendChild(d);
+});
+function buildCode(){
+  var s=''; Object.keys(SLOTS).forEach(function(k){ s+=equipped[k].slice(0,2).toUpperCase(); });
+  return 'VG4-'+s.slice(0,4)+'-'+(powerRating());
+}
+function refresh(){
+  var t=totals();
+  ['armor','speed','power','energy'].forEach(function(k){
+    var v=Math.min(100, Math.round(t[k]*1.9));
+    document.getElementById('stat-'+k).textContent=v;
+    document.getElementById('bar-'+k).style.width=v+'%';
+  });
+  document.getElementById('powerRating').textContent=powerRating();
+  document.getElementById('buildCode').textContent=buildCode();
+  var bl=document.getElementById('buildList'); bl.innerHTML='';
+  Object.keys(SLOTS).forEach(function(k){
+    var r=document.createElement('div'); r.className='build-row';
+    r.innerHTML='<span>'+SLOTS[k].label+'</span><b>'+optOf(k).name+'</b>';
+    bl.appendChild(r);
+  });
+  [['primary','Primary'],['heavy','Heavy']].forEach(function(pair){
+    var r=document.createElement('div'); r.className='build-row';
+    r.innerHTML='<span>'+pair[1]+' Weapon</span><b>'+weaponOf(loadout[pair[0]]).name+'</b>';
+    bl.appendChild(r);
+  });
+  document.querySelectorAll('.slot-btn').forEach(function(b){
+    b.querySelector('[data-eq]').textContent=optOf(b.dataset.slot).name;
+  });
+}
+var toastTimer=null;
+function toast(msg){
+  var el=document.getElementById('toast'); el.textContent='▸ '+msg;
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){ el.textContent=''; }, 3200);
+}
+document.getElementById('copyBtn').addEventListener('click', function(){
+  var lines=['VANGUARD MK-IV — '+buildCode(),'Power Rating: '+powerRating()];
+  Object.keys(SLOTS).forEach(function(k){ lines.push(SLOTS[k].label+': '+optOf(k).name); });
+  lines.push('Primary: '+weaponOf(loadout.primary).name,'Heavy: '+weaponOf(loadout.heavy).name);
+  var txt=lines.join('\n');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ toast('Loadout copied to clipboard'); }, function(){ toast('Copy blocked — build code: '+buildCode()); });
+  } else toast('Build code: '+buildCode());
+});
+document.getElementById('randomBtn').addEventListener('click', function(){
+  Object.keys(SLOTS).forEach(function(k){
+    var s=SLOTS[k]; equipSilent(k, s.options[Math.floor(Math.random()*s.options.length)].id);
+  });
+  var shuffled=WEAPONS.slice().sort(function(){return Math.random()-.5;});
+  loadout.primary=shuffled[0].id; loadout.heavy=shuffled[1].id;
+  refresh(); renderWeaponSlots();
+  if(activeSlot) renderPopup(activeSlot);
+  toast('Random build rolled — '+buildCode());
+});
+function equipSilent(key, id){
+  equipped[key]=id; var o=optOf(key);
+  if(key==='head'){ mechSvg.setAttribute('data-head', id); if(o.visor){ document.getElementById('visor').setAttribute('fill', o.visor); document.documentElement.style.setProperty('--glow', o.visor); } }
+  if(key==='core') mechSvg.setAttribute('data-core', id==='prism' ? 'fusion' : id);
+  if(key==='shoulders') mechSvg.setAttribute('data-sh', id==='razor' ? 'standard' : id);
+  if(key==='back') mechSvg.setAttribute('data-back', id);
+}
+document.getElementById('stockBtn').addEventListener('click', function(){
+  Object.keys(STOCK).forEach(function(k){ equipSilent(k, STOCK[k]); });
+  document.getElementById('visor').setAttribute('fill','#38e1ff');
+  applyPaint(PAINTS[0]);
+  document.querySelectorAll('.paint-btn').forEach(function(x,i){ x.classList.toggle('active', i===0); });
+  loadout={primary:'volt', heavy:'hammer'};
+  refresh(); renderWeaponSlots();
+  if(activeSlot) renderPopup(activeSlot);
+  toast('Stock Vanguard build restored');
+});
+
+/* init */
+refresh();
+renderWeaponSlots();
+</script>
+</body>
+</html>
